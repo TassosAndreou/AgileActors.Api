@@ -49,20 +49,83 @@ builder.Services.AddHttpClient<NewsProvider>(c =>
     c.BaseAddress = new Uri("https://newsapi.org/");
     c.DefaultRequestHeaders.Add("User-Agent", "MyAppName/1.0");
 })
-.AddHttpMessageHandler(sp => new TimingHandler(sp.GetRequiredService<IApiStatsStore>(), "news"));
+.AddHttpMessageHandler(sp => new TimingHandler(sp.GetRequiredService<IApiStatsStore>(), "news"))
+.AddResilienceHandler("news-pipeline", pipeline =>
+{
+    // Retry policy (3 retries, exponential backoff)
+    pipeline.AddRetry(new HttpRetryStrategyOptions
+    {
+        MaxRetryAttempts = 3,
+        Delay = TimeSpan.FromMilliseconds(200),
+        BackoffType = DelayBackoffType.Exponential
+    });
+
+    // Timeout policy (10 seconds per request)
+    pipeline.AddTimeout(TimeSpan.FromSeconds(10));
+
+    // Circuit breaker (trip after 5 consecutive errors, reset after 30s)
+    pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+    {
+        FailureRatio = 0.5, // 50% failures trip it
+        MinimumThroughput = 10,
+        BreakDuration = TimeSpan.FromSeconds(30)
+    });
+});
 
 builder.Services.AddHttpClient<WeatherProvider>(c =>
 {
     c.BaseAddress = new Uri("https://api.openweathermap.org/");
 })
-.AddHttpMessageHandler(sp => new TimingHandler(sp.GetRequiredService<IApiStatsStore>(), "weather"));
+.AddHttpMessageHandler(sp => new TimingHandler(sp.GetRequiredService<IApiStatsStore>(), "weather"))
+.AddResilienceHandler("weather-pipeline", pipeline =>
+{
+    // Retry policy (3 retries, exponential backoff)
+    pipeline.AddRetry(new HttpRetryStrategyOptions
+    {
+        MaxRetryAttempts = 3,
+        Delay = TimeSpan.FromMilliseconds(200),
+        BackoffType = DelayBackoffType.Exponential
+    });
+
+    // Timeout policy (10 seconds per request)
+    pipeline.AddTimeout(TimeSpan.FromSeconds(10));
+
+    // Circuit breaker (trip after 5 consecutive errors, reset after 30s)
+    pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+    {
+        FailureRatio = 0.5, // 50% failures trip it
+        MinimumThroughput = 10,
+        BreakDuration = TimeSpan.FromSeconds(30)
+    });
+});
 
 builder.Services.AddHttpClient<SpotifyProvider>(c =>
 {
     c.BaseAddress = new Uri("https://api.spotify.com/");
     c.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 })
-.AddHttpMessageHandler(sp => new TimingHandler(sp.GetRequiredService<IApiStatsStore>(), "spotify"));
+.AddHttpMessageHandler(sp => new TimingHandler(sp.GetRequiredService<IApiStatsStore>(), "spotify"))
+.AddResilienceHandler("spotify-pipeline", pipeline =>
+{
+    // Retry policy (3 retries, exponential backoff)
+    pipeline.AddRetry(new HttpRetryStrategyOptions
+    {
+        MaxRetryAttempts = 3,
+        Delay = TimeSpan.FromMilliseconds(200),
+        BackoffType = DelayBackoffType.Exponential
+    });
+
+    // Timeout policy (10 seconds per request)
+    pipeline.AddTimeout(TimeSpan.FromSeconds(10));
+
+    // Circuit breaker (trip after 5 consecutive errors, reset after 30s)
+    pipeline.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+    {
+        FailureRatio = 0.5, // 50% failures trip it
+        MinimumThroughput = 10,
+        BreakDuration = TimeSpan.FromSeconds(30)
+    });
+});
 
 // Register providers as IExternalProvider
 builder.Services.AddScoped<IExternalProvider>(sp => sp.GetRequiredService<NewsProvider>());
