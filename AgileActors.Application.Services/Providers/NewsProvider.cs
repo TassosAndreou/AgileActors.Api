@@ -23,10 +23,16 @@ public class NewsProvider : IExternalProvider
     {
         try
         {
-            
+
             var q = query.Query!;
 
-         
+            if (!string.IsNullOrWhiteSpace(query.Query) &&
+                    query.Query.Contains("slow", StringComparison.OrdinalIgnoreCase))
+            {
+                await Task.Delay(30000, ct); // 10 seconds delay for demo
+            }
+
+
             var from = (query.From ?? DateTimeOffset.UtcNow.AddDays(-1))
                 .UtcDateTime
                 .ToString("yyyy-MM-dd");

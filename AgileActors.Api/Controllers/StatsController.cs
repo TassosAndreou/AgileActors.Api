@@ -1,38 +1,28 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+using AgileActors.Core.Stats;
+using Microsoft.AspNetCore.Authorization;
+
+namespace AgileActors.Api.Controllers;
 
 [ApiController]
-[Route("api/auth")]
-public class AuthController : ControllerBase
+[Route("api/stats")]
+public class StatsController : ControllerBase
 {
-    private readonly IConfiguration _config;
+    private readonly IApiStatsStore _stats;
+    public StatsController(IApiStatsStore stats) => _stats = stats;
 
-    public AuthController(IConfiguration config) => _config = config;
 
-    [HttpPost("login")]
-    public IActionResult Login(string username, string password)
-    {        
-        if (username != "test" || password != "123") return Unauthorized();
+    [HttpGet("public")]
+    [AllowAnonymous]
+    public ActionResult<ApiStatsSnapshot[]> GetPublic()
+    {
+        return _stats.Snapshot();
+    }
 
-        var claims = new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, username),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Issuer"],
-            claims: claims,
-            expires: DateTime.UtcNow.AddHours(1),
-            signingCredentials: creds);
-
-        return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
+    [HttpGet("secure")]
+    [Authorize]
+    public ActionResult<ApiStatsSnapshot[]> GetSecure()
+    {
+        return _stats.Snapshot();
     }
 }

@@ -1,50 +1,41 @@
 using System.Collections.Concurrent;
-using AgileActors.Core.Stats;
 
-namespace AgileActors.Application.Services;
+namespace AgileActors.Core.Stats;
 
 public class InMemoryApiStatsStore : IApiStatsStore
 {
-    private class Counter
+    private readonly ConcurrentDictionary<string, List<ApiRequestSample>> _history = new();
+
+    public void Record(string api, TimeSpan elapsed)
     {
-        public long Total;
-        public double TotalMs;
-        public long Fast;
-        public long Average;
-        public long Slow;
-    }
+        var entry = new ApiRequestSample(DateTimeOffset.UtcNow, (long)elapsed.TotalMilliseconds);
+        var list = _history.GetOrAdd(api, _ => new List<ApiRequestSample>());
 
-    private readonly ConcurrentDictionary<string, Counter> _data = new();
-    private readonly (double fast, double avg) _thresholds;
+        lock (list)
+        {
+            list.Add(entry);
 
-    public InMemoryApiStatsStore(double fastMs = 100, double avgMs = 200) =>
-        _thresholds = (fastMs, avgMs);
-
-    public void Record(string apiName, TimeSpan elapsed)
-    {
-        var ms = elapsed.TotalMilliseconds;
-        var c = _data.GetOrAdd(apiName, _ => new Counter());
-
-        c.Total++;
-        c.TotalMs += ms;
-        if (ms < _thresholds.fast) c.Fast++;
-        else if (ms < _thresholds.avg) c.Average++;
-        else c.Slow++;
+            // Keep only last 1 hour of history
+            var cutoff = DateTimeOffset.UtcNow.AddHours(-1);
+            list.RemoveAll(x => x.Timestamp < cutoff);
+        }
     }
 
     public ApiStatsSnapshot[] Snapshot()
     {
-        return _data.Select(kv =>
+        return _history.Select(kvp =>
         {
-            var c = kv.Value;
-            var total = Math.Max(1, c.Total);
+            var list = kvp.Value.ToList();
+            var avg = list.Any() ? list.Average(x => (double)x.DurationMs) : 0;
+
             return new ApiStatsSnapshot(
-                kv.Key,
-                c.Total,
-                c.TotalMs / total,
-                c.Fast,
-                c.Average,
-                c.Slow
+                ApiName: kvp.Key,
+                TotalRequests: list.Count,
+                AverageMs: avg,
+                FastCount: list.Count(x => x.DurationMs < 100),
+                AverageCount: list.Count(x => x.DurationMs is >= 100 and < 200),
+                SlowCount: list.Count(x => x.DurationMs >= 200),
+                History: list
             );
         }).ToArray();
     }

@@ -10,6 +10,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi.Models;
+using Quartz;
+using AgileActors.Api.QuartzService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +47,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddHttpClient<NewsProvider>(c =>
 {
     c.BaseAddress = new Uri("https://newsapi.org/");
+    c.DefaultRequestHeaders.Add("User-Agent", "MyAppName/1.0");
 })
 .AddHttpMessageHandler(sp => new TimingHandler(sp.GetRequiredService<IApiStatsStore>(), "news"));
 
@@ -66,6 +69,20 @@ builder.Services.AddScoped<IExternalProvider>(sp => sp.GetRequiredService<NewsPr
 builder.Services.AddScoped<IExternalProvider>(sp => sp.GetRequiredService<WeatherProvider>());
 builder.Services.AddScoped<IExternalProvider>(sp => sp.GetRequiredService<SpotifyProvider>());
 
+
+builder.Services.AddQuartz(q =>
+{
+    // Schedule the job every 1 minute
+    var jobKey = new JobKey("ApiPerformanceMonitorJob");
+    q.AddJob<ApiPerformanceMonitorJob>(opts => opts.WithIdentity(jobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(jobKey)
+        .WithIdentity("ApiPerformanceMonitorJob-trigger")
+        .StartNow()
+        .WithSimpleSchedule(x => x.WithIntervalInMinutes(1).RepeatForever()));
+});
+
+builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
