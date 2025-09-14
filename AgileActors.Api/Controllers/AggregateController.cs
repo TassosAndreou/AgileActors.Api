@@ -12,15 +12,30 @@ public class AggregateController : ControllerBase
     private readonly IAggregationService _svc;
     public AggregateController(IAggregationService svc) => _svc = svc;
 
-    [HttpGet]
+    [HttpGet("public")]
     [AllowAnonymous]
-    public async Task<ActionResult<AggregatedResponse>> Get(
+    public async Task<ActionResult<AggregatedResponse>> GetPublic(
         [FromQuery] string? q,
         [FromQuery] string? category,
         [FromQuery] DateTimeOffset? from,
         [FromQuery] DateTimeOffset? to,
         [FromQuery] string? sortBy,
         CancellationToken ct)
+    {
+        var query = new AggregateQuery(q, category, from, to, sortBy);
+        var result = await _svc.AggregateAsync(query, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("secure")]
+    [Authorize]
+    public async Task<ActionResult<AggregatedResponse>> GetSecure(
+       [FromQuery] string? q,
+       [FromQuery] string? category,
+       [FromQuery] DateTimeOffset? from,
+       [FromQuery] DateTimeOffset? to,
+       [FromQuery] string? sortBy,
+       CancellationToken ct)
     {
         var query = new AggregateQuery(q, category, from, to, sortBy);
         var result = await _svc.AggregateAsync(query, ct);
