@@ -14,6 +14,7 @@ public class NewsProvider : IExternalProvider
 
     public NewsProvider(HttpClient http, IConfiguration config)
     {
+        Console.WriteLine($"[NewsProvider] HttpClient BaseAddress = {http.BaseAddress}");
         _http = http;
         _apiKey = config["ExternalApis:NewsApiKey"] ?? throw new InvalidOperationException("NewsApiKey missing");
     }
@@ -23,7 +24,7 @@ public class NewsProvider : IExternalProvider
         try
         {
             
-            var q = string.IsNullOrWhiteSpace(query.Query) ? "agileactors" : query.Query!;
+            var q = query.Query!;
 
          
             var from = (query.From ?? DateTimeOffset.UtcNow.AddDays(-1))
@@ -39,7 +40,7 @@ public class NewsProvider : IExternalProvider
 
           
             var url =
-                $"https://newsapi.org/v2/everything?q={Uri.EscapeDataString(q)}&from={from}&sortBy={sort}&language=en&apiKey={_apiKey}";
+                $"v2/everything?q={Uri.EscapeDataString(q)}&from={from}&sortBy={sort}&language=en&apiKey={_apiKey}";
 
             using var resp = await _http.GetAsync(url, ct);
 

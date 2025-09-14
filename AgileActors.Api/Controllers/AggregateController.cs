@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using AgileActors.Application.Services;
 using AgileActors.Core.Aggregation;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AgileActors.Api.Controllers;
 
@@ -12,6 +13,7 @@ public class AggregateController : ControllerBase
     public AggregateController(IAggregationService svc) => _svc = svc;
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<AggregatedResponse>> Get(
         [FromQuery] string? q,
         [FromQuery] string? category,

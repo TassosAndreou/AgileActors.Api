@@ -13,7 +13,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IApiStatsStore, InMemoryApiStatsStore>();
 builder.Services.AddScoped<IAggregationService, AggregationService>();
 
-// --- HttpClients with built-in resilience ---
+
 builder.Services.AddHttpClient<NewsProvider>(c =>
 {
     c.BaseAddress = new Uri("https://newsapi.org/");
@@ -34,11 +34,11 @@ builder.Services.AddHttpClient<SpotifyProvider>(c =>
 .AddHttpMessageHandler(sp => new TimingHandler(sp.GetRequiredService<IApiStatsStore>(), "spotify"));
 
 // Register providers as IExternalProvider
-builder.Services.AddScoped<IExternalProvider, NewsProvider>();
-builder.Services.AddScoped<IExternalProvider, WeatherProvider>();
-builder.Services.AddScoped<IExternalProvider, SpotifyProvider>();
+builder.Services.AddScoped<IExternalProvider>(sp => sp.GetRequiredService<NewsProvider>());
+builder.Services.AddScoped<IExternalProvider>(sp => sp.GetRequiredService<WeatherProvider>());
+builder.Services.AddScoped<IExternalProvider>(sp => sp.GetRequiredService<SpotifyProvider>());
 
-// --- API pipeline ---
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

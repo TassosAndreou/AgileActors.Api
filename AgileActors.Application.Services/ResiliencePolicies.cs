@@ -51,6 +51,7 @@ public sealed class TimingHandler : DelegatingHandler
         finally
         {
             sw.Stop();
+            Console.WriteLine($"[{_apiName}] Took {sw.ElapsedMilliseconds} ms");
             _store.Record(_apiName, sw.Elapsed);
         }
     }

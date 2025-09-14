@@ -26,7 +26,7 @@ public sealed class WeatherProvider : IExternalProvider
             var lat = double.TryParse(Environment.GetEnvironmentVariable("OWM_LAT"), out var l) ? l : 37.98;
             var lon = double.TryParse(Environment.GetEnvironmentVariable("OWM_LON"), out var g) ? g : 23.72;
 
-            var url = $"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={_apiKey}&units=metric";
+            var url = $"data/2.5/weather?lat={lat}&lon={lon}&appid={_apiKey}&units=metric";
 
             using var resp = await _http.GetAsync(url, ct);
 
